@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抉擇 — 民國變遷歷史模擬遊戲</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #121314;
+            color: #e2e8f0;
+        }
+        
+        .font-serif-tc {
+            font-family: 'Noto Serif TC', serif;
+        }
+
+        /* 復古羊皮紙/歷史感漸層 */
+        .history-card {
+            background: linear-gradient(135deg, #1e1e1e 0%, #151516 100%);
+            border: 1px solid #3a3224;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .border-gold {
+            border-color: #c5a880;
+        }
+
+        .text-gold {
+            color: #d4af37;
+        }
+
+        .bg-gold-muted {
+            background-color: rgba(197, 168, 128, 0.1);
+        }
+
+        /* 進度條動畫 */
+        .progress-bar-transition {
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 打字機效果 */
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        .cursor-blink::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- 遊戲頂部狀態列 -->
+    <header class="bg-[#1a1b1c] border-b border-[#2d2e30] py-4 px-6 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <!-- 遊戲Logo與標題 -->
+            <div class="flex items-center gap-3">
+                <div class="bg-[#c5a880] text-black font-serif-tc font-black px-3 py-1 text-xl rounded">抉擇</div>
+                <div>
+                    <h1 class="text-md font-bold text-gray-200 tracking-wider">民國變遷歷史模擬遊戲</h1>
+                    <p class="text-xs text-gray-400" id="current-chapter-title">第一章：黃埔怒潮，北伐與形式統一 (1924-1928)</p>
+                </div>
+            </div>
+
+            <!-- 三大核心維度指標 -->
+            <div class="flex gap-4 w-full md:w-auto justify-end">
+                <!-- 黃埔威望 -->
+                <div class="flex-1 md:flex-none w-32 bg-[#1f2022] p-2 rounded border border-[#3e3220] relative group">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-[#c5a880] flex items-center gap-1">
+                            <i data-lucide="shield" class="w-3.5 h-3.5"></i> 黃埔威望
+                        </span>
+                        <span class="text-xs font-bold" id="val-prestige">50</span>
+                    </div>
+                    <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-prestige" class="bg-gradient-to-r from-amber-600 to-[#c5a880] h-full progress-bar-transition" style="width: 50%;"></div>
+                    </div>
+                    <!-- 提示氣泡 -->
+                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-black text-[10px] text-gray-300 rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 border border-gray-700">
+                        代表中央軍與黃埔系將領的忠誠度。數值低時，地方軍閥容易擁兵自重、割據或倒戈。
+                    </div>
+                </div>
+
+                <!-- 財政民心 -->
+                <div class="flex-1 md:flex-none w-32 bg-[#1f2022] p-2 rounded border border-[#203e30] relative group">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-[#62c580] flex items-center gap-1">
+                            <i data-lucide="coins" class="w-3.5 h-3.5"></i> 財政民心
+                        </span>
+                        <span class="text-xs font-bold" id="val-finance">50</span>
+                    </div>
+                    <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-finance" class="bg-gradient-to-r from-emerald-600 to-[#62c580] h-full progress-bar-transition" style="width: 50%;"></div>
+                    </div>
+                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-black text-[10px] text-gray-300 rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 border border-gray-700">
+                        國統區的經濟狀況與合法性。面臨惡性通貨膨脹與軍費支出時，需要極力平衡。
+                    </div>
+                </div>
+
+                <!-- 國際角力 -->
+                <div class="flex-1 md:flex-none w-32 bg-[#1f2022] p-2 rounded border border-[#20303e] relative group">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-[#62a0c5] flex items-center gap-1">
+                            <i data-lucide="globe" class="w-3.5 h-3.5"></i> 國際角力
+                        </span>
+                        <span class="text-xs font-bold" id="val-diplomacy">50</span>
+                    </div>
+                    <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-diplomacy" class="bg-gradient-to-r from-blue-600 to-[#62a0c5] h-full progress-bar-transition" style="width: 50%;"></div>
+                    </div>
+                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-black text-[10px] text-gray-300 rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 border border-gray-700">
+                        面對美、蘇、日等國的態度與支持度。可用於爭取外援，但也需警惕主權上的妥協。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 遊戲主體區域 -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        <!-- 左側：地圖、章節任務與歷史情境（5格） -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+            <!-- 歷史地圖與背景形勢 -->
+            <div class="history-card rounded-lg p-4 flex-1 flex flex-col justify-between min-h-[250px] relative overflow-hidden">
+                <div class="absolute inset-0 opacity-15 pointer-events-none mix-blend-overlay bg-cover bg-center" id="map-bg" style="background-image: url('https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80');"></div>
+                
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> 歷史沙盤形勢
+                        </span>
+                        <span class="text-xs text-gray-400" id="game-year">1924年</span>
+                    </div>
+                    <h3 class="text-lg font-serif-tc font-bold text-gray-100 mb-2" id="scene-location">黃埔軍校與廣州大本營</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4" id="scene-description">
+                        政局動盪，軍閥割據。孫中山先生於廣州創立黃埔軍校，任命你為校長。你的首要任務是建軍，並準備肅清地方叛亂，邁出統一中國的第一步。
+                    </p>
+                </div>
+
+                <!-- 章節進度 -->
+                <div class="relative z-10 pt-4 border-t border-[#313235]">
+                    <div class="flex justify-between text-xs text-gray-400 mb-2">
+                        <span>章節推進度</span>
+                        <span id="chapter-progress-text">0 / 4</span>
+                    </div>
+                    <div class="w-full bg-gray-950 h-1.5 rounded-full overflow-hidden">
+                        <div id="chapter-progress-bar" class="bg-amber-500 h-full progress-bar-transition" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 歷史紀錄日誌 -->
+            <div class="history-card rounded-lg p-4 h-48 flex flex-col">
+                <h4 class="text-xs font-bold text-[#c5a880] mb-2 flex items-center gap-1 border-b border-[#2d2e30] pb-1.5">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i> 蔣中正的歷史日記
+                </h4>
+                <div class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs text-gray-400 leading-relaxed font-mono" id="history-log">
+                    <p class="text-amber-500/85">［大正十三年・廣州］：今日軍校開學，眼見滿堂熱血青年，皆為革命火種。唯餉銀匱乏，強敵伺環，深感任重道遠。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：主事件決策面板（7格） -->
+        <div class="lg:col-span-7 flex flex-col">
+            <!-- 遊戲主體事件卡 -->
+            <div id="event-panel" class="history-card rounded-lg p-6 flex-1 flex flex-col justify-between border-gold border-t-4 relative">
+                <!-- 開始/初始化覆蓋層 -->
+                <div id="intro-screen" class="absolute inset-0 bg-[#121314] z-30 flex flex-col justify-center items-center p-8 text-center rounded-lg">
+                    <span class="text-xs tracking-[0.2em] uppercase text-amber-500 font-bold mb-2">HISTORY DECISION GAME</span>
+                    <h2 class="text-4xl md:text-5xl font-serif-tc font-black tracking-widest text-[#d4af37] mb-4">抉 擇</h2>
+                    <p class="text-sm text-gray-400 max-w-md leading-relaxed mb-8 font-serif-tc">
+                        「千秋大業，存亡攸關。一念之間，天地易色。」<br>
+                        你將扮演蔣中正，親歷北伐、抗戰、內戰等歷史洪流。在軍閥、列強、經濟崩潰的多重危機中，你能否維持三大維度的平衡，帶領民國走向不同的結局？
+                    </p>
+                    <button id="btn-start" class="px-8 py-3 bg-gradient-to-r from-amber-600 to-[#c5a880] hover:from-amber-500 hover:to-amber-400 text-black font-bold tracking-widest rounded shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
+                        <i data-lucide="play" class="w-5 h-5 fill-black"></i> 進入歷史
+                    </button>
+                </div>
+
+                <!-- 結局覆蓋層 -->
+                <div id="ending-screen" class="absolute inset-0 bg-[#121314] z-30 hidden flex flex-col justify-center items-center p-8 text-center rounded-lg overflow-y-auto">
+                    <span class="text-xs tracking-widest text-amber-500 font-bold mb-2" id="end-type">歷史終局</span>
+                    <h2 class="text-3xl font-serif-tc font-bold text-[#d4af37] mb-4" id="end-title">歷史的必然</h2>
+                    <p class="text-sm text-gray-300 max-w-lg leading-relaxed mb-8 font-serif-tc" id="end-description">
+                        <!-- 結局描述 -->
+                    </p>
+                    <!-- 結尾數據顯示 -->
+                    <div class="grid grid-cols-3 gap-4 mb-8 w-full max-w-md bg-[#1f2022] p-4 rounded border border-gray-800">
+                        <div>
+                            <div class="text-xs text-[#c5a880]">最終黃埔威望</div>
+                            <div class="text-xl font-bold font-serif-tc mt-1" id="end-prestige">50</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-[#62c580]">最終財政民心</div>
+                            <div class="text-xl font-bold font-serif-tc mt-1" id="end-finance">50</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-[#62a0c5]">最終國際角力</div>
+                            <div class="text-xl font-bold font-serif-tc mt-1" id="end-diplomacy">50</div>
+                        </div>
+                    </div>
+                    <button id="btn-restart" class="px-8 py-3 border border-[#c5a880] text-[#c5a880] hover:bg-[#c5a880] hover:text-black font-bold tracking-widest rounded transition flex items-center gap-2">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i> 重新抉擇
+                    </button>
+                </div>
+
+                <!-- 事件內容 -->
+                <div class="space-y-4">
+                    <!-- 事件頂部屬性 -->
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="bg-[#2d2111] text-[#c5a880] border border-[#523d20] px-2.5 py-1 rounded" id="event-tag">歷史事件</span>
+                        <span class="text-gray-500" id="event-index">事件 1/4</span>
+                    </div>
+
+                    <!-- 事件標題 -->
+                    <h3 class="text-xl md:text-2xl font-serif-tc font-bold text-[#f3e3cd]" id="event-title">黃埔建軍：陳炯明叛變</h3>
+
+                    <!-- 事件主插圖 (可視為小畫布或示意圖) -->
+                    <div class="w-full h-44 rounded border border-[#2d2e30] bg-[#1a1b1c] overflow-hidden flex items-center justify-center relative">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10"></div>
+                        <div class="absolute top-3 left-3 bg-black/60 px-2 py-0.5 rounded text-[10px] text-gray-400 z-10 flex items-center gap-1">
+                            <i data-lucide="image" class="w-3 h-3"></i> 局勢示意
+                        </div>
+                        <img id="event-image" src="https://images.unsplash.com/photo-1547483238-f400e65ccd56?auto=format&fit=crop&w=800&q=80" alt="歷史事件示意圖" class="w-full h-full object-cover opacity-60">
+                    </div>
+
+                    <!-- 事件詳細敘述 -->
+                    <p class="text-sm md:text-base text-gray-300 leading-relaxed min-h-[80px]" id="event-desc">
+                        陳炯明率部於廣州發動叛變，炮轟總統府。孫中山先生被迫避難永豐艦。此時黃埔軍校剛具雛形，人心惶惶，地方軍閥正伺機而動。你該如何應對，以確立黃埔建軍之合法性與你在黨內的威望？
+                    </p>
+                </div>
+
+                <!-- 決策按鈕選項區域 -->
+                <div class="space-y-3 mt-6" id="options-container">
+                    <!-- 選項1 -->
+                    <button class="option-btn w-full text-left bg-[#1c1d1e] hover:bg-[#252729] border border-gray-800 hover:border-amber-600/50 p-4 rounded-lg transition duration-200 group relative overflow-hidden flex items-start gap-3">
+                        <div class="bg-gray-800 text-gray-400 group-hover:bg-amber-600 group-hover:text-black font-bold px-2 py-0.5 text-xs rounded mt-0.5">甲</div>
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-200 group-hover:text-white" id="opt-title-0">率校軍即刻出兵平叛，死守廣州。</div>
+                            <div class="text-xs text-gray-500 mt-1" id="opt-impact-0">影響：預估降低黃埔威望，提升國際角力。</div>
+                        </div>
+                    </button>
+                    <!-- 選項2 -->
+                    <button class="option-btn w-full text-left bg-[#1c1d1e] hover:bg-[#252729] border border-gray-800 hover:border-amber-600/50 p-4 rounded-lg transition duration-200 group relative overflow-hidden flex items-start gap-3">
+                        <div class="bg-gray-800 text-gray-400 group-hover:bg-amber-600 group-hover:text-black font-bold px-2 py-0.5 text-xs rounded mt-0.5">乙</div>
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-200 group-hover:text-white" id="opt-title-1">避其鋒芒，護送總理撤往上海，尋求列強與江浙財閥支持。</div>
+                            <div class="text-xs text-gray-500 mt-1" id="opt-impact-1">影響：預估提升財政民心，降低黃埔威望。</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部資訊與彩蛋 -->
+    <footer class="bg-[#0b0c0d] border-t border-[#1a1b1c] py-4 px-6 text-center text-xs text-gray-500">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+            <p>歷史研究與教育用途・《抉擇》民國變遷模擬系統 © 2026</p>
+            <div class="flex gap-4">
+                <span class="hover:text-gray-300 transition duration-150 cursor-help flex items-center gap-1" onclick="showInfoModal()">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i> 遊戲說明
+                </span>
+                <span class="hover:text-gray-300 transition duration-150 cursor-pointer" onclick="toggleMute()">
+                    <i data-lucide="volume-2" class="w-3.5 h-3.5 inline" id="mute-icon"></i> <span id="mute-text">靜音</span>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 遊戲說明 Modal -->
+    <div id="info-modal" class="fixed inset-0 bg-black/80 flex justify-center items-center p-4 z-50 hidden">
+        <div class="history-card rounded-lg p-6 max-w-lg w-full border-gold border">
+            <h3 class="text-xl font-serif-tc font-bold text-gold mb-3 flex items-center gap-2">
+                <i data-lucide="info" class="w-5 h-5"></i> 遊戲說明
+            </h3>
+            <div class="text-xs text-gray-300 space-y-3 leading-relaxed">
+                <p><strong>1. 三大維度制約：</strong></p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-400">
+                    <li><strong class="text-amber-500">黃埔威望</strong>代表你對軍隊的控制力。一旦歸零，地方軍閥將發動政變推翻中央。</li>
+                    <li><strong class="text-emerald-500">財政民心</strong>代表國統區的經濟與合法性。歸零代表通膨失控、人民起義，政權覆滅。</li>
+                    <li><strong class="text-blue-400">國際角力</strong>代表美蘇日對你的博弈。歸零代表列強徹底拋棄，全面被孤立。</li>
+                </ul>
+                <p><strong>2. 歷史走向與章節：</strong></p>
+                <p>遊戲共四章，共 16 個抉擇點。若任何一個維度在過程中跌至 <strong>0%</strong>，將會立即引發「歷史失敗結局」。成功渡過所有章節，將能根據你的剩餘屬性解鎖<strong>「完美統治、偏安一隅、歷史逆轉」</strong>等不同的終局。</p>
+                <p><strong>3. 給玩家的忠告：</strong></p>
+                <p class="italic text-amber-500/80">「你不能討好所有人。有時為了財政，你必須得罪將領；為了爭取外援，你可能必須在主權上做出屈辱的妥協。」</p>
+            </div>
+            <button onclick="closeInfoModal()" class="mt-6 w-full py-2 bg-[#2d2e30] hover:bg-[#3d3e41] text-gray-200 rounded transition font-bold text-xs">
+                關閉說明
+            </button>
+        </div>
+    </div>
+
+    <!-- 簡易音效合成器 -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let isMuted = false;
+
+        function playSound(type) {
+            if (isMuted) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'click') {
+                    // 復古打字機/木魚點擊聲
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                } else if (type === 'chapter') {
+                    // 號角或鐘聲
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(220, audioCtx.currentTime + 0.15);
+                    osc.frequency.setValueAtTime(330, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.8);
+                } else if (type === 'danger') {
+                    // 低沉警示聲
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.5);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.5);
+                } else if (type === 'success') {
+                    // 凱旋音
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(261.6, audioCtx.currentTime); // C4
+                    osc.frequency.setValueAtTime(329.6, audioCtx.currentTime + 0.15); // E4
+                    osc.frequency.setValueAtTime(392.0, audioCtx.currentTime + 0.3); // G4
+                    osc.frequency.setValueAtTime(523.3, audioCtx.currentTime + 0.45); // C5
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.8);
+                }
+            } catch (e) {
+                console.log("Audio failed to play", e);
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('mute-icon').className = isMuted ? 'w-3.5 h-3.5 inline text-red-500' : 'w-3.5 h-3.5 inline';
+            document.getElementById('mute-text').textContent = isMuted ? '開啟聲音' : '靜音';
+            playSound('click');
+        }
+
+        function showInfoModal() {
+            document.getElementById('info-modal').classList.remove('hidden');
+            playSound('click');
+        }
+
+        function closeInfoModal() {
+            document.getElementById('info-modal').classList.add('hidden');
+            playSound('click');
+        }
+    </script>
+
+    <!-- 遊戲主體邏輯數據 -->
+    <script>
+        // 遊戲狀態
+        let prestige = 50;
+        let finance = 50;
+        let diplomacy = 50;
+        let currentChapter = 0;
+        let currentStep = 0; // 當前章節內的事件指引
+
+        // 歷史日記文本緩衝
+        const diaryLogs = [];
+
+        // 歷史章節事件數據
+        const chapters = [
+            {
+                title: "第一章：黃埔怒潮，北伐與形式統一 (1924-1928)",
+                bgImage: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
+                events: [
+                    {
+                        title: "黃埔建軍與陳炯明叛亂 (1924)",
+                        location: "廣州黃埔軍校",
+                        year: "1924年",
+                        desc: "陳炯明炮轟大本營，叛軍人多勢眾，且暗中勾結地方士紳。黃埔軍校此時只有少數學生軍，但孫總理危在旦夕，你該如何因應？",
+                        options: [
+                            {
+                                text: "率學生軍發動決死反擊，堅決平叛！以此樹立革命威望。",
+                                prestige: +20, finance: -10, diplomacy: 0,
+                                log: "「黃埔建軍首戰，學生軍浴血奮戰，校長身先士卒，陳逆潰敗，黃埔威名大震！」"
+                            },
+                            {
+                                text: "護送總理退守永豐艦，利用列強壓力與外交談判牽制陳軍，等待援軍。",
+                                prestige: -10, finance: +10, diplomacy: +15,
+                                log: "「雖然保存了實力，但也讓軍校內部部分將領質疑我軍妥協，所幸外交上爭取到喘息。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "是否接納共產黨與聯俄容共？ (1925)",
+                        location: "廣州大本營",
+                        year: "1925年",
+                        desc: "總理逝世後，黨內鬥爭激烈。蘇聯顧問鮑羅廷要求擴大共產黨在黃埔及軍隊中的影響力。汪精衛對此極力支持，而黨內右派則強烈反對。你作為校長該站哪一邊？",
+                        options: [
+                            {
+                                text: "支持容共：爭取蘇聯大規模軍火與財政援助，以加速北伐準備。",
+                                prestige: -5, finance: +15, diplomacy: +15,
+                                log: "「蘇聯大批軍火與顧問進駐黃埔，黃埔戰力大增，但黨內暗潮洶湧，右派將領極度不滿。」"
+                            },
+                            {
+                                text: "警惕容共：限制共產黨人在黃埔的活動，拉攏黨內保守派與江浙財閥。",
+                                prestige: +15, finance: +5, diplomacy: -15,
+                                log: "「此舉獲得了黨內黃埔教官的死忠與江浙財閥的資金承諾，但蘇聯開始削減對黃埔的直接援助。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "「寧漢分裂」與清黨抉擇 (1927)",
+                        location: "上海與南京",
+                        year: "1927年",
+                        desc: "北伐軍進佔上海。然而武漢國民政府（汪精衛）與蘇聯顧問試圖剝奪你的軍權。此時，江浙財閥與西方列強表示：若你實行「清黨」肅清左派，便願意提供源源不絕的財政貸款。",
+                        options: [
+                            {
+                                text: "發動「四一二清黨」：與蘇聯徹底絕裂，取得江浙財閥與西方經濟支持。",
+                                prestige: -10, finance: +30, diplomacy: +10,
+                                log: "「鮮血染紅了黃浦江，清黨雖然解決了迫在眉睫的軍費問題，但黨內發生分裂，基層凝聚力大失。」"
+                            },
+                            {
+                                text: "拒絕清黨：繼續維持與武漢政府、蘇聯的合作，實行漸進式的妥協。",
+                                prestige: +15, finance: -25, diplomacy: -15,
+                                log: "「汪精衛奪取了部分黨務權力，財閥拒絕貸款，中央財政枯竭，軍中出現欠餉，士氣低迷。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "東北易幟與形式統一 (1928)",
+                        location: "瀋陽與北平",
+                        year: "1928年",
+                        desc: "皇姑屯事件後張作霖身亡，張學良繼位。日本關東軍強烈警告張學良不得「易幟」歸順南京。張學良暗中派人試探你的底線：是否願意給予他東北絕對的軍政自治權？",
+                        options: [
+                            {
+                                text: "全盤答應：承認張學良在東北的特權，完成中華民國形式上的大統一。",
+                                prestige: +20, finance: 0, diplomacy: -10,
+                                log: "「青天白日滿地紅旗在瀋陽升起！全國形式上統一，你的威望達到頂峰，但埋下地方尾大不掉的隱患。」"
+                            },
+                            {
+                                text: "嚴正拒絕：要求張學良交出外交與財政大權，否則不排除武力北上接收。",
+                                prestige: -10, finance: -10, diplomacy: +15,
+                                log: "「張學良猶豫不決，日軍趁機插手東北政務，國際局勢更形複雜，統一進程被迫拖延。」"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                title: "第二章：黃金十年與內憂外患 (1928-1937)",
+                bgImage: "https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&w=800&q=80",
+                events: [
+                    {
+                        title: "中原大戰：軍閥聯手反蔣 (1930)",
+                        location: "河南與山東戰場",
+                        year: "1930年",
+                        desc: "閻錫山、馮玉祥、李宗仁不滿編遣裁軍，聯手起兵造反，戰火蔓延大半個中國。黃埔嫡系軍隊雖然精銳，但寡不敵眾。張學良的東北軍成為決定勝負的關鍵砝碼，他要求鉅額軍費與黃河以北的控制權。",
+                        options: [
+                            {
+                                text: "巨資拉攏張學良：答應張的要求，並用金錢、官職收買敵對軍閥將領，以本傷人。",
+                                prestige: +10, finance: -25, diplomacy: 0,
+                                log: "「張學良揮師關內，軍閥聯軍隨之瓦解。中原大戰險勝，但中央財政因購買將領與龐大軍費而近乎破產。」"
+                            },
+                            {
+                                text: "死戰到底：拒絕張學良的獅子大開口，依賴黃埔嫡系部隊在正面戰場硬碰硬。",
+                                prestige: -15, finance: +10, diplomacy: -5,
+                                log: "「黃埔精銳在豫東戰場死傷極其慘烈，嫡系實力大損，李宗仁等軍閥雖退兵，但中央已無力控制地方。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "「九一八事變」與不抵抗政策 (1931)",
+                        location: "瀋陽與南京",
+                        year: "1931年",
+                        desc: "關東軍炸毀南滿鐵路，進攻北大營。張學良電詢中央，此時國軍主力正在南方圍剿中共蘇維埃，國家尚未做好對日全面作戰的準備。你是否對日宣戰？",
+                        options: [
+                            {
+                                text: "不抵抗，訴諸國聯：避免過早與日本決戰，保存實力繼續「安內」，依靠西方調停。",
+                                prestige: -25, finance: +10, diplomacy: +15,
+                                log: "「東北淪陷。國內群情激憤，學生運動此起彼落，你的民望跌入谷底，但國際上獲得了一定同情。」"
+                            },
+                            {
+                                text: "發動局部抗戰：命令東北軍與關內守軍堅決反擊，宣告對日進入局部戰爭狀態。",
+                                prestige: +20, finance: -20, diplomacy: -10,
+                                log: "「長城抗戰與一二八淞滬抗戰相繼爆發，國軍英勇抵抗，民氣大振，但財政消耗劇烈，且引來日軍更大規模的報復。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "「安內攘外」：第五次圍剿中共 (1933)",
+                        location: "江西瑞金周邊",
+                        year: "1933年",
+                        desc: "你邀請了德國軍事顧問塞克特，制定了「堡壘政策」，逐步壓縮江西紅軍生存空間。但此時日本在華北步步進逼，要求簽訂《塘沽協定》。國內反對「剿共高於抗日」的呼聲震天。",
+                        options: [
+                            {
+                                text: "貫徹「安內攘外」：不理會輿論，對日簽署妥協協定，調動百萬大軍誓要徹底消滅紅軍。",
+                                prestige: +15, finance: -15, diplomacy: -10,
+                                log: "「红军被迫進行長征。但此舉激怒了知識份子，全國抗日輿論對你極為失望。」"
+                            },
+                            {
+                                text: "暫緩剿共，北上抗日：接受中間派調停，與中共進行秘密停火談判，將兵力部署至華北。",
+                                prestige: -10, finance: +10, diplomacy: +10,
+                                log: "「華北局勢暫時穩定，財政壓力減輕。但紅軍在西北獲得了喘息，黃埔將領對‘容共’感到不安。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "「西安事變」：兵諫大抉擇 (1936)",
+                        location: "西安華清池",
+                        year: "1936年",
+                        desc: "張學良、楊虎城發動兵諫，將你扣押於西安。何應欽在南京主張派飛機轟炸西安，實行武力討伐。此時中共代表周恩來、宋美齡與宋子文趕往西安，希望和平解決。你面臨生命與尊嚴的雙重考驗。",
+                        options: [
+                            {
+                                text: "堅持不妥協：寧死不寫手諭，痛斥叛將。逼迫南京政府派大軍進攻，誓死衛道。",
+                                prestige: +30, finance: -20, diplomacy: -20,
+                                log: "「你展現了驚人的領袖氣節。然而何應欽發動內戰，西安爆發血戰，局勢徹底失控，日本在一旁虎視眈眈。」"
+                            },
+                            {
+                                text: "接受妥協：口頭承諾「停止內戰，一致抗日」，收編東北軍，與中共建立抗日統一戰線。",
+                                prestige: -10, finance: -10, diplomacy: +20,
+                                log: "「西安事變和平解決。你安全返回南京，全國視你為唯一的抗日領袖，但不得不承諾停止剿共，紅軍獲得合法地位。」"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                title: "第三章：血肉長城，艱苦卓絕的八年抗戰 (1937-1945)",
+                bgImage: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=800&q=80",
+                events: [
+                    {
+                        title: "淞滬會戰：用空間換取時間 (1937)",
+                        location: "上海閘北與吳淞口",
+                        year: "1937年",
+                        desc: "盧溝橋事變爆發，全面抗戰拉開序幕。你決定在上海主動開闢第二戰場，吸引日軍主力由北向南轉向由東向西。這需要將全部的黃埔德械師（精銳）投入戰場，這批部隊一旦打光，你將失去最重要的軍政本錢。",
+                        options: [
+                            {
+                                text: "精銳盡出，血戰到底：將德械師與地方軍全數投入，打一場給列強看的現代化防禦戰。",
+                                prestige: +25, finance: -30, diplomacy: +15,
+                                log: "「國軍以血肉長城抵抗日軍強大炮火，打破了日本‘三月亡華’的迷夢，國際為之震驚。但黃埔精銳近乎打光，元氣大傷。」"
+                            },
+                            {
+                                text: "保留實力，逐步退守：以地方雜牌軍拖延，將中央軍精銳撤往大後方，保存實力。",
+                                prestige: -15, finance: -10, diplomacy: -10,
+                                log: "「上海快速失守，國內士氣受挫，盟友感到失望。但你成功保存了黃埔嫡系骨幹，退往武漢與重慶。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "花園口決堤：無奈的防守 (1938)",
+                        location: "河南花園口",
+                        year: "1938年",
+                        desc: "徐州失守，日軍精銳沿隴海鐵路西進，鄭州危在旦夕，武漢即將被合圍。參謀部建議掘開黃河花園口大堤，利用滔滔黃河水阻擋日軍裝甲部隊。但此舉將導致數十萬百姓流離失所、無辜喪命。",
+                        options: [
+                            {
+                                text: "批准決堤：以水代兵，爭取寶貴的武漢防衛與工廠西遷時間。",
+                                prestige: +10, finance: -30, diplomacy: 0,
+                                log: "「黃河決堤，氾濫成災，成功阻擋了日軍進攻，爭取了三個月西遷時間。但百萬百姓受災，民心極度痛恨，歷史罵名加身。」"
+                            },
+                            {
+                                text: "嚴禁決堤：命部隊在平原地區與日軍進行慘烈的遭遇戰與陣地戰。",
+                                prestige: -10, finance: -15, diplomacy: +5,
+                                log: "「日軍裝甲部隊快速突破，豫西與武漢加速陷落，國軍多個師被殲滅，後方撤退極其混亂。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "大後方經營與重慶大轟炸 (1940)",
+                        location: "陪都重慶",
+                        year: "1940年",
+                        desc: "日軍對重慶實行了長達數年的狂轟濫炸。大後方經濟困難，法幣開始貶值。此時，汪精衛投敵在南京成立偽政府，高倡「和平運動」。大後方出現妥協投降思潮，你如何維持民心士氣？",
+                        options: [
+                            {
+                                text: "堅壁清野，嚴厲打壓妥協派：實行戰時經濟統制，成立特務機構嚴防漢奸，宣示抗戰到底。",
+                                prestige: +15, finance: -20, diplomacy: 0,
+                                log: "「大後方秩序得以維持，漢奸活動收斂。但特務政治盛行，自由派知識分子與士紳怨聲載道。」"
+                            },
+                            {
+                                text: "改善民生，開放輿論：放寬物價管制，容許各黨派在重慶參政發言，以民主團結抗日。",
+                                prestige: -10, finance: +15, diplomacy: +10,
+                                log: "「雖然獲得了美英等盟國的民主讚譽，但在戰時體制下，缺乏管制的投機商人大發國難財，物價飛漲。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "史迪威危機：軍權與美援的博弈 (1943)",
+                        location: "重慶曾家岩官邸",
+                        year: "1943年",
+                        desc: "同盟國成立後，美國派遣史迪威將軍擔任中國戰區參謀長。史迪威性格傲慢，直指國軍將領腐敗無能，要求掌握「所有中國軍隊（包括中共八路軍）的絕對指揮權」，否則將建議羅斯福總統切斷駝峰航線的所有美援。",
+                        options: [
+                            {
+                                text: "堅決拒絕，要求撤換史迪威：寸步不讓，軍權乃國家主權核心，不可交予外人，寧可減少美援。",
+                                prestige: +20, finance: 0, diplomacy: -25,
+                                log: "「羅斯福最終妥協，撤換了史迪威。你的尊嚴與對軍隊的控制得以保全，但中美關係蒙上陰影，美援撥款被大幅拖延。」"
+                            },
+                            {
+                                text: "隱忍接受，讓渡指揮權：屈從美國意志，以換取美械裝備的大規模武裝與美軍空軍支持。",
+                                prestige: -15, finance: +10, diplomacy: +30,
+                                log: "「大批美械物資運抵，中國駐印軍戰力大增。但美軍開始干涉國軍人事，黃埔將領對此心懷不滿、陽奉陰違。」"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                title: "第四章：天翻地覆，國共內戰與退守台灣 (1945-1949)",
+                bgImage: "https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&w=800&q=80",
+                events: [
+                    {
+                        title: "雙十協定與受降危機 (1945)",
+                        location: "重慶談判",
+                        year: "1945年",
+                        desc: "抗戰勝利，毛澤東來到重慶談判。在美蘇施壓下，雙方簽署《雙十協定》。此時，東北地區出現權力真空，蘇聯軍隊佔領東北，暗中將關東軍的大量重型武器移交給中共部隊。你該如何爭奪東北？",
+                        options: [
+                            {
+                                text: "調動最精銳美械師，強行接收東北：不惜代價，與中共在東北展開決戰。",
+                                prestige: +15, finance: -25, diplomacy: 0,
+                                log: "「國軍初期連克瀋陽、長春。然而戰線拉得太長，精銳部隊被牽制在東北泥淖中，軍費開支浩繁。」"
+                            },
+                            {
+                                text: "承認東北暫時現狀，先鞏固關內控制：在美蘇調停下，實行地方自治，全力恢復經濟。",
+                                prestige: -15, finance: +25, diplomacy: +10,
+                                log: "「關內民生暫時得到休養。但中共在東北徹底站穩腳跟，並獲得了龐大的工業與軍事資源。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "金圓券改革與蔣經國打虎 (1948)",
+                        location: "南京與上海",
+                        year: "1948年",
+                        desc: "內戰全面爆發，軍費高達財政預算的八成，法幣形同廢紙。為了挽救財政，你發行「金圓券」強行收兌民間黃金白銀。長子蔣經國在上海嚴厲打擊投機奸商，甚至逮捕了孔祥熙之子孔令侃，宋美齡與孔家對此施加極大壓力。",
+                        options: [
+                            {
+                                text: "支持蔣經國「打虎」到底：即使與孔宋家族決裂，也要維持經濟紀律，挽回人心。",
+                                prestige: -10, finance: +30, diplomacy: -10,
+                                log: "「打虎行動震驚全國，短期內穩定了一定物價。但政權核心家族發生大分裂，官僚體系暗中抵制，金圓券最終仍因戰局失利而崩潰。」"
+                            },
+                            {
+                                text: "干預「打虎」，妥協和解：勸阻蔣經國，放過孔令侃，維護黨國統治核心家族的團結。",
+                                prestige: +10, finance: -35, diplomacy: 0,
+                                log: "「上海經濟秩序瞬間失控，金圓券在數周內貶值百萬倍，形同廢紙。城市中產階級對國民政府徹底絕望。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "淮海戰役：指揮微操之惑 (1948)",
+                        location: "徐州防守司令部",
+                        year: "1948年",
+                        desc: "徐蚌會戰（淮海戰役）爆發，國軍主力兵團被共軍合圍。你對前線將領的忠誠度存疑，擔心地方將領叛變，因此頻繁透過電報直接指揮到師級、團級部隊。前線司令官黃百韜、杜聿明請求臨陣自主決策權。",
+                        options: [
+                            {
+                                text: "放手讓前線將領自行發揮：不再越級干預，給予戰場最高指揮官全權指揮權。",
+                                prestige: -20, finance: 0, diplomacy: 0,
+                                log: "「部分地方部隊臨陣倒戈（投共），導致防線出現巨大缺口。主力兵團最終全軍覆沒。」"
+                            },
+                            {
+                                text: "親自微信指揮，確保黃埔嫡系聽命：每日發電報指示各師移動路線，嚴格控制部隊動向。",
+                                prestige: +10, finance: -10, diplomacy: 0,
+                                log: "「你的微操電報讓前線各級將領無所適從，部隊在拉鋸移動中被共軍分割包圍，精銳兵團損失殆盡。」"
+                            }
+                        ]
+                    },
+                    {
+                        title: "終局抉擇：黃金、文物與人才大搶運 (1949)",
+                        location: "南京、上海與重慶",
+                        year: "1949年",
+                        desc: "大局已去，長江防線失守，撤退台灣已成定局。此時，你掌握著中央銀行剩餘的數百萬兩黃金、故宮博物院的無價文物，以及數百位滯留在北平、南京的一流中研院學者。搶運資源的運力有限，你如何分配優先權？",
+                        options: [
+                            {
+                                text: "優先搶運黃金與故宮文物：為台灣的財政防禦與中華文化的道統延續奠定最堅實基礎。",
+                                prestige: +10, finance: +35, diplomacy: -5,
+                                log: "「百萬兩黃金與數千箱文物安全抵達基隆。這批黃金穩定住了台灣初期的金融（新台幣改革），文化寶藏得以保全。」"
+                            },
+                            {
+                                text: "優先搶救大師與學者（學人計劃）：派飛機搶救胡適、陳寅恪等學者，保存中華民族的精神火種。",
+                                prestige: +25, finance: -10, diplomacy: +10,
+                                log: "「大批頂尖學者安全抵台，奠定了台灣日後學術與科技發展的基石。但黃金儲備不足，撤退初期的財政極其艱難。」"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        // 初始化遊戲
+        function initGame() {
+            prestige = 50;
+            finance = 50;
+            diplomacy = 50;
+            currentChapter = 0;
+            currentStep = 0;
+            
+            diaryLogs.length = 0;
+            diaryLogs.push("［大正十三年・廣州］：今日軍校開學，眼見滿堂熱血青年，皆為革命火種。唯餉銀匱乏，強敵伺環，深感任重道遠。");
+
+            document.getElementById('intro-screen').classList.remove('hidden');
+            document.getElementById('ending-screen').classList.add('hidden');
+            
+            updateUI();
+        }
+
+        // 開始遊戲
+        document.getElementById('btn-start').addEventListener('click', () => {
+            playSound('chapter');
+            document.getElementById('intro-screen').classList.add('hidden');
+            updateUI();
+        });
+
+        // 重新開始
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            initGame();
+        });
+
+        // 更新UI
+        function updateUI() {
+            // 限制數值在0-100之間
+            prestige = Math.max(0, Math.min(100, prestige));
+            finance = Math.max(0, Math.min(100, finance));
+            diplomacy = Math.max(0, Math.min(100, diplomacy));
+
+            // 更新頂部數值
+            document.getElementById('val-prestige').textContent = prestige;
+            document.getElementById('val-finance').textContent = finance;
+            document.getElementById('val-diplomacy').textContent = diplomacy;
+
+            // 更新進度條
+            document.getElementById('bar-prestige').style.width = prestige + '%';
+            document.getElementById('bar-finance').style.width = finance + '%';
+            document.getElementById('bar-diplomacy').style.width = diplomacy + '%';
+
+            // 檢查是否觸發即時失敗結局
+            if (prestige <= 0) {
+                triggerInstantEnding('prestige_fail');
+                return;
+            }
+            if (finance <= 0) {
+                triggerInstantEnding('finance_fail');
+                return;
+            }
+            if (diplomacy <= 0) {
+                triggerInstantEnding('diplomacy_fail');
+                return;
+            }
+
+            // 獲取當前事件
+            const chap = chapters[currentChapter];
+            document.getElementById('current-chapter-title').textContent = chap.title;
+            
+            // 更新左側沙盤
+            document.getElementById('chapter-progress-text').textContent = `${currentStep} / ${chap.events.length}`;
+            const totalSteps = chap.events.length;
+            const progressPct = (currentStep / totalSteps) * 100;
+            document.getElementById('chapter-progress-bar').style.width = progressPct + '%';
+
+            // 地圖背景替換
+            document.getElementById('map-bg').style.backgroundImage = `url('${chap.bgImage}')`;
+
+            const evt = chap.events[currentStep];
+            if (evt) {
+                document.getElementById('game-year').textContent = evt.year;
+                document.getElementById('scene-location').textContent = evt.location;
+                document.getElementById('event-tag').textContent = `章節 ${currentChapter + 1} - 事件 ${currentStep + 1}`;
+                document.getElementById('event-index').textContent = `章節進度: ${currentStep + 1}/${totalSteps}`;
+                document.getElementById('event-title').textContent = evt.title;
+                document.getElementById('event-desc').textContent = evt.desc;
+                document.getElementById('event-image').src = getEventImagePlaceholder(currentChapter, currentStep);
+
+                // 渲染選項
+                const opt0 = evt.options[0];
+                const opt1 = evt.options[1];
+
+                document.getElementById('opt-title-0').textContent = opt0.text;
+                document.getElementById('opt-impact-0').innerHTML = formatImpactHTML(opt0);
+
+                document.getElementById('opt-title-1').textContent = opt1.text;
+                document.getElementById('opt-impact-1').innerHTML = formatImpactHTML(opt1);
+            }
+
+            // 更新歷史日記
+            const logBox = document.getElementById('history-log');
+            logBox.innerHTML = '';
+            // 反向顯示日記（最新在最上面）
+            for (let i = diaryLogs.length - 1; i >= 0; i--) {
+                const p = document.createElement('p');
+                p.className = i === diaryLogs.length - 1 ? 'text-amber-400 font-bold' : 'text-gray-500';
+                p.textContent = diaryLogs[i];
+                logBox.appendChild(p);
+            }
+        }
+
+        // 根據章節和事件返回特定示意圖
+        function getEventImagePlaceholder(chapIdx, stepIdx) {
+            const pics = [
+                // 第一章
+                [
+                    "https://images.unsplash.com/photo-1547483238-f400e65ccd56?auto=format&fit=crop&w=400&q=80", // 戰火
+                    "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=400&q=80", // 談判/會議
+                    "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=400&q=80", // 舊紙張
+                    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80"  // 地圖
+                ],
+                // 第二章
+                [
+                    "https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=400&q=80", // 大軍
+                    "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=400&q=80", // 廢墟/大樓
+                    "https://images.unsplash.com/photo-1513829096960-ef0251cd4459?auto=format&fit=crop&w=400&q=80", // 士兵/防禦
+                    "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&q=80"  // 昏暗官邸
+                ],
+                // 第三章
+                [
+                    "https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&w=400&q=80", // 轟炸
+                    "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=400&q=80", // 黃河/洪水
+                    "https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&w=400&q=80", // 重慶大後方
+                    "https://images.unsplash.com/photo-1526470608268-f674ce90ebd4?auto=format&fit=crop&w=400&q=80"  // 國際合照
+                ],
+                // 第四章
+                [
+                    "https://images.unsplash.com/photo-1505664194779-8bebcb95ae84?auto=format&fit=crop&w=400&q=80", // 重慶談判
+                    "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=400&q=80", // 金圓券
+                    "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=400&q=80", // 電報
+                    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=400&q=80"  // 撤退/寶藏
+                ]
+            ];
+            try {
+                return pics[chapIdx][stepIdx] || pics[0][0];
+            } catch (e) {
+                return pics[0][0];
+            }
+        }
+
+        // 格式化預期影響HTML
+        function formatImpactHTML(option) {
+            let parts = [];
+            if (option.prestige !== 0) {
+                const color = option.prestige > 0 ? 'text-[#c5a880]' : 'text-red-400';
+                const sign = option.prestige > 0 ? '+' : '';
+                parts.push(`<span class="${color}">黃埔威望 ${sign}${option.prestige}</span>`);
+            }
+            if (option.finance !== 0) {
+                const color = option.finance > 0 ? 'text-[#62c580]' : 'text-red-400';
+                const sign = option.finance > 0 ? '+' : '';
+                parts.push(`<span class="${color}">財政民心 ${sign}${option.finance}</span>`);
+            }
+            if (option.diplomacy !== 0) {
+                const color = option.diplomacy > 0 ? 'text-[#62a0c5]' : 'text-red-400';
+                const sign = option.diplomacy > 0 ? '+' : '';
+                parts.push(`<span class="${color}">國際角力 ${sign}${option.diplomacy}</span>`);
+            }
+            return '預估影響：' + (parts.length > 0 ? parts.join(', ') : '維持現狀');
+        }
+
+        // 處理玩家點擊選項
+        const optionBtns = document.querySelectorAll('.option-btn');
+        optionBtns.forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                playSound('click');
+                handleDecision(index);
+            });
+        });
+
+        function handleDecision(optionIndex) {
+            const chap = chapters[currentChapter];
+            const evt = chap.events[currentStep];
+            const opt = evt.options[optionIndex];
+
+            // 應用數值變化
+            prestige += opt.prestige;
+            finance += opt.finance;
+            diplomacy += opt.diplomacy;
+
+            // 寫入日記
+            const minguoYear = parseInt(evt.year.replace('年', '')) - 1911;
+            const diaryPrefix = `［民國${minguoYear}年・${evt.location}］：`;
+            diaryLogs.push(diaryPrefix + opt.log);
+
+            // 推進事件
+            currentStep++;
+
+            // 檢查是否該章節結束
+            if (currentStep >= chap.events.length) {
+                currentChapter++;
+                currentStep = 0;
+                
+                if (currentChapter >= chapters.length) {
+                    // 全通關，觸發終局結算
+                    triggerNormalEnding();
+                } else {
+                    // 進入下一章
+                    playSound('chapter');
+                    // 新增章節日記
+                    diaryLogs.push(`—— 歷史邁入新篇章：${chapters[currentChapter].title} ——`);
+                    updateUI();
+                }
+            } else {
+                updateUI();
+            }
+        }
+
+        // 觸發即時失敗結局 (某指標為 0)
+        function triggerInstantEnding(reason) {
+            playSound('danger');
+            const endScreen = document.getElementById('ending-screen');
+            const endType = document.getElementById('end-type');
+            const endTitle = document.getElementById('end-title');
+            const endDesc = document.getElementById('end-description');
+
+            endScreen.classList.remove('hidden');
+            
+            // 數據展現
+            document.getElementById('end-prestige').textContent = prestige;
+            document.getElementById('end-finance').textContent = finance;
+            document.getElementById('end-diplomacy').textContent = diplomacy;
+
+            if (reason === 'prestige_fail') {
+                endType.textContent = "歷史死局：軍法倒戈";
+                endTitle.textContent = "中原鼎沸，黃埔崩解";
+                endDesc.innerHTML = "由於你多次打壓嫡系將領、或未能建立足夠的軍事威信，各省軍閥（李宗仁、閻錫山、白崇禧等）忍無可忍，聯手發動了「護黨救國」兵變。黃埔軍校學生軍在內外交困中星散。你的軍權被剝奪，並被迫發表下野聲明，歷史在軍閥混戰中步入了更加黑暗的深淵。";
+            } else if (reason === 'finance_fail') {
+                endType.textContent = "歷史死局：經濟崩潰";
+                endTitle.textContent = "金圓廢紙，大廈傾覆";
+                endDesc.innerHTML = "由於嚴重的惡性通貨膨脹，法幣與金圓券徹底沦為廢紙。上海、南京、重慶物價日狂漲萬倍，市民與公務員、教師紛紛走上街頭，國統區爆發了無法遏制的生存暴動。軍隊因發不出軍餉大面積開小差或戰場起義。未等外敵與內憂進逼，政權已在經濟的總崩潰中土崩瓦解。";
+            } else if (reason === 'diplomacy_fail') {
+                endType.textContent = "歷史死局：國際孤立";
+                endTitle.textContent = "列強棄子，舉世皆孤";
+                endDesc.innerHTML = "你試圖在列強中長袖善舞，卻因多次違背外交承諾或侵害主權底線，同時激怒了美國與蘇聯。美國國會正式切斷了《援華法案》的所有軍事貸款，蘇聯也全面加大了對你對手的支援。在毫無外援、駝峰航線中斷的絕境下，國軍兵工廠停產。你被這個時代的國際秩序徹底遺棄。";
+            }
+        }
+
+        // 正常通關（順利走到1949撤退台灣）
+        function triggerNormalEnding() {
+            playSound('success');
+            const endScreen = document.getElementById('ending-screen');
+            const endType = document.getElementById('end-type');
+            const endTitle = document.getElementById('end-title');
+            const endDesc = document.getElementById('end-description');
+
+            endScreen.classList.remove('hidden');
+
+            document.getElementById('end-prestige').textContent = prestige;
+            document.getElementById('end-finance').textContent = finance;
+            document.getElementById('end-diplomacy').textContent = diplomacy;
+
+            // 綜合評估結局
+            const totalScore = prestige + finance + diplomacy;
+
+            if (totalScore >= 180) {
+                // 完美結局
+                endType.textContent = "傳奇結局：復興基石";
+                endTitle.textContent = "奠基台灣，重振山河";
+                endDesc.innerHTML = "你歷經了北伐、中原大戰、八年抗戰與內戰的狂風暴雨。在你的苦心經營下，縱使局勢危殆，你依然成功保全了黃埔將領的忠誠度（黃埔威望高），並在退守台灣時成功將數百萬兩黃金、故宮文物以及中研院大師學者完好無損地帶到了台灣（財政民心與國際角力保存完好）。<br><br>這筆豐厚的財政、文化與人才資源，讓台灣在1950年代初期迅速穩定，新台幣改革成功，並奠定了日後經濟騰飛與學術發展的奇蹟基石。歷史給予了你「在驚濤駭浪中保全民族火種」的崇高評價。";
+            } else if (prestige >= 60 && finance <= 40) {
+                // 軍事偏安
+                endType.textContent = "標準結局：威權偏安";
+                endTitle.textContent = "海峽對峙，軍政維權";
+                endDesc.innerHTML = "你艱難地帶領殘部撤退到了台灣。雖然保全了黃埔嫡系軍隊（威望高），但由於大後方財政崩潰，黃金與學人未能完全搶救。退守台灣後，你不得不實行嚴厲的「戒嚴令」以高壓政策維持政局穩定，軍事威權色彩濃厚。台灣在艱苦中求生存，進入了長達數十年的軍事對峙冷戰歲月。";
+            } else if (finance >= 60 && prestige <= 45) {
+                // 文化/民生偏安
+                endType.textContent = "特殊結局：文化中興";
+                endTitle.textContent = "學人建島，寶島新生";
+                endDesc.innerHTML = "你在最後關頭做出了驚人的抉擇，放棄了部分軍隊，將所有運力拿來運送中研院學者、故宮文物與黃金。這讓台灣迅速成為全球漢學研究與文化的重鎮，自由民主派學者在島內得到了極大的尊重。雖然中央軍實力大不如前，但台灣以其卓越的經濟與軟實力，贏得了世界的尊重，走出了一條全然不同的自由與科技島嶼之路。";
+            } else {
+                // 慘淡偏安
+                endType.textContent = "平庸結局：偏安一隅";
+                endTitle.textContent = "風雨飄搖，偏安寶島";
+                endDesc.innerHTML = "1949年，你疲憊地站在基隆港口。三大維度勉強維持在及格邊緣，黃金搶運有限，大師多半滯留大陸，黃埔嫡系人心渙散。雖然在美國第七艦隊的協防下保住了台灣不被攻佔，但台灣初期的經濟面臨惡性通膨的陰影，軍心惶惶。你將在極其風雨飄搖的國際局勢中度過晚年。";
+            }
+        }
+
+        // 初始化
+        initGame();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
